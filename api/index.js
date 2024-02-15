@@ -1,5 +1,5 @@
 const fastify = require("fastify")();
-const sequelize = require("./sequelize");
+const sequelize = require("../sequelize");
 const {
 	newPixelId,
 	newPixelLog,
@@ -8,9 +8,8 @@ const {
 	clearLogs,
 	removePixel,
 	getPixels,
-} = require("./service");
+} = require("../service");
 
-const PORT = process.env.PORT || 3000;
 const PIXEL_IMG = Buffer.from(
 	"R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==",
 	"base64",
@@ -70,12 +69,26 @@ fastify.get("/logs/:pixelId", async (request, reply) => {
 	reply.send({ success, data: logs, error });
 });
 
-sequelize.sync().then(() => {
-	fastify.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
-		if (err) {
-			console.error(err);
-			process.exit(1);
-		}
-		console.log(`Server running on port ${PORT}`);
-	});
-});
+module.exports = async (req, res) => {
+  try {
+    await sequelize.sync();
+    await fastify.ready();
+    fastify.server.emit('request', req, res);
+  } catch (error) {
+    console.error('Error syncing Sequelize models:', error);
+    res.status(500).send('Internal Server Error');
+  }
+};
+
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3000;
+  sequelize.sync().then(() => {
+  	fastify.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
+  		if (err) {
+  			console.error(err);
+  			process.exit(1);
+  		}
+  		console.log(`Server running on port ${PORT}`);
+  	});
+  });
+}
