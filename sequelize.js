@@ -2,12 +2,6 @@ const { Sequelize } = require("sequelize");
 
 let sequelize;
 
-console.log(process.env.NODE_ENV);
-console.log(process.env.DB_DATABASE);
-console.log(process.env.DB_USER);
-console.log(process.env.DB_PASSWORD);
-console.log(process.env.DB_HOST);
-
 if (process.env.NODE_ENV === "production") {
 	sequelize = new Sequelize(
 		process.env.DB_DATABASE,
