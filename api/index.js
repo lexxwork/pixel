@@ -15,6 +15,13 @@ const PIXEL_IMG = Buffer.from(
 	"base64",
 );
 
+fastify.get("/", async (request, reply) => {
+	reply.send({
+		success: true,
+		message: "Pixel API",
+	})
+})
+
 fastify.post("/pixel/create", async (request, reply) => {
 	const { tag } = request.body;
 	const { success, error, pixelId } = await newPixelId({ tag });
