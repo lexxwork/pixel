@@ -19,8 +19,8 @@ fastify.get("/", async (request, reply) => {
 	reply.send({
 		success: true,
 		message: "Pixel API",
-	})
-})
+	});
+});
 
 fastify.post("/pixel/create", async (request, reply) => {
 	const { tag } = request.body;
@@ -37,21 +37,15 @@ fastify.get("/pixel/:pixelId", async (request, reply) => {
 	const pixelId = request.params.pixelId;
 	const headersJson = JSON.stringify(request.headers);
 	const ip = request.ip;
-	const { success, error } = await newPixelLog(pixelId, {
-		headers: headersJson,
-		ip_address: ip,
-	});
-	if (!success) {
-		reply.code(403).send({ error });
-		return;
-	}
+
 	reply.header("Content-Type", "image/gif");
 	reply.header("Content-Length", 43);
 	reply.header("Cache-Control", "no-cache, no-store, must-revalidate");
 	reply.header("Pragma", "no-cache");
 	reply.header("Expires", 0);
-
 	reply.send(PIXEL_IMG);
+
+	await newPixelLog(pixelId, { headers: headersJson, ip_address: ip });
 });
 
 fastify.get("/pixel/clear-xo3dq9h4v25t34sfk", async (request, reply) => {
@@ -77,27 +71,27 @@ fastify.get("/logs/:pixelId", async (request, reply) => {
 });
 
 module.exports = async (req, res) => {
-  try {
-		console.log('Running in production mode');
-    await sequelize.sync();
-    await fastify.ready();
-    fastify.server.emit('request', req, res);
-  } catch (error) {
-    console.error('Error syncing Sequelize models:', error);
-    res.status(500).send('Internal Server Error');
-  }
+	try {
+		console.log("Running in production mode");
+		await sequelize.sync();
+		await fastify.ready();
+		fastify.server.emit("request", req, res);
+	} catch (error) {
+		console.error("Error syncing Sequelize models:", error);
+		res.status(500).send("Internal Server Error");
+	}
 };
 
-if (process.env.NODE_ENV !== 'production') {
-	console.log('Running in development mode');
-  const PORT = process.env.PORT || 3000;
-  sequelize.sync().then(() => {
-  	fastify.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
-  		if (err) {
-  			console.error(err);
-  			process.exit(1);
-  		}
-  		console.log(`Server running on port ${PORT}`);
-  	});
-  });
+if (process.env.NODE_ENV !== "production") {
+	console.log("Running in development mode");
+	const PORT = process.env.PORT || 3000;
+	sequelize.sync().then(() => {
+		fastify.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
+			if (err) {
+				console.error(err);
+				process.exit(1);
+			}
+			console.log(`Server running on port ${PORT}`);
+		});
+	});
 }

@@ -16,6 +16,7 @@ if (process.env.NODE_ENV === "production") {
 				ssl: true,
 			},
 			logging: false,
+			logQueryParameters: false,
 		},
 	);
 } else {
@@ -23,6 +24,8 @@ if (process.env.NODE_ENV === "production") {
 	sequelize = new Sequelize({
 		dialect: "sqlite",
 		storage: DB_FILE_PATH,
+		logging: false,
+		logQueryParameters: false,
 	});
 }
 
