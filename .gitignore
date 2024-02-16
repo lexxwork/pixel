@@ -5,3 +5,5 @@ node_modules
 .vscode
 etc
 .vercel
+env*
+.env*

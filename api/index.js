@@ -78,6 +78,7 @@ fastify.get("/logs/:pixelId", async (request, reply) => {
 
 module.exports = async (req, res) => {
   try {
+		console.log('Running in production mode');
     await sequelize.sync();
     await fastify.ready();
     fastify.server.emit('request', req, res);
@@ -88,6 +89,7 @@ module.exports = async (req, res) => {
 };
 
 if (process.env.NODE_ENV !== 'production') {
+	console.log('Running in development mode');
   const PORT = process.env.PORT || 3000;
   sequelize.sync().then(() => {
   	fastify.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
