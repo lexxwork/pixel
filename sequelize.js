@@ -2,8 +2,9 @@ const { Sequelize } = require("sequelize");
 const pg = require("pg");
 
 let sequelize;
+const isVercel = process.env.VERCEL === "1";
 
-if (process.env.NODE_ENV === "production") {
+if (isVercel) {
 	sequelize = new Sequelize(
 		process.env.DB_DATABASE,
 		process.env.DB_USER,
