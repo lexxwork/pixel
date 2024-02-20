@@ -1,4 +1,7 @@
-const fastify = require("fastify")();
+const fastify = require("fastify");
+const fs = require("fs");
+const path = require("path");
+
 const sequelize = require("../sequelize");
 const {
 	newPixelId,
@@ -15,25 +18,38 @@ const PIXEL_IMG = Buffer.from(
 	"base64",
 );
 
-fastify.get("/", async (request, reply) => {
+const isProduction = process.env.NODE_ENV === "production";
+const isHTTPS = process.env.HTTPS === "true";
+const certsPath = path.join(__dirname, "../.certs");
+
+const server = fastify({
+	https: !isHTTPS
+		? {
+				key: fs.readFileSync(path.join(certsPath, "key.pem")),
+				cert: fs.readFileSync(path.join(certsPath, "cert.pem")),
+		  }
+		: undefined,
+});
+
+server.get("/", async (request, reply) => {
 	reply.send({
 		success: true,
 		message: "Pixel API",
 	});
 });
 
-fastify.post("/pixel/create", async (request, reply) => {
+server.post("/pixel/create", async (request, reply) => {
 	const { tag } = request.body;
 	const { success, error, pixelId } = await newPixelId({ tag });
 	reply.send({ success, error, pixelId });
 });
 
-fastify.get("/pixels", async (request, reply) => {
+server.get("/pixels", async (request, reply) => {
 	const { success, error, pixels } = await getPixels();
 	reply.send({ success, error, pixels });
 });
 
-fastify.get("/pixel/:pixelId", async (request, reply) => {
+server.get("/pixel/:pixelId", async (request, reply) => {
 	const pixelId = request.params.pixelId;
 	const headersJson = JSON.stringify(request.headers);
 	const ip = request.ip;
@@ -48,23 +64,23 @@ fastify.get("/pixel/:pixelId", async (request, reply) => {
 	await newPixelLog(pixelId, { headers: headersJson, ip_address: ip });
 });
 
-fastify.get("/pixel/clear-xo3dq9h4v25t34sfk", async (request, reply) => {
+server.get("/pixel/clear-xo3dq9h4v25t34sfk", async (request, reply) => {
 	const { success, error, message } = await clearLogs();
 	reply.send({ success, error, message });
 });
 
-fastify.get("/pixel/delete/:pixelId", async (request, reply) => {
+server.get("/pixel/delete/:pixelId", async (request, reply) => {
 	const pixelId = request.params.pixelId;
 	const { success, error, message } = await removePixel(pixelId);
 	reply.send({ success, error, message });
 });
 
-fastify.get("/logs", async (request, reply) => {
+server.get("/logs", async (request, reply) => {
 	const { success, logs, error } = await getLogs();
 	reply.send({ success, data: logs, error });
 });
 
-fastify.get("/logs/:pixelId", async (request, reply) => {
+server.get("/logs/:pixelId", async (request, reply) => {
 	const pixelId = request.params.pixelId;
 	const { success, logs, error } = await getLogsByPixelId(pixelId);
 	reply.send({ success, data: logs, error });
@@ -74,19 +90,21 @@ module.exports = async (req, res) => {
 	try {
 		console.log("Running in production mode");
 		await sequelize.sync();
-		await fastify.ready();
-		fastify.server.emit("request", req, res);
+		await server.ready();
+		server.server.emit("request", req, res);
 	} catch (error) {
 		console.error("Error syncing Sequelize models:", error);
 		res.status(500).send("Internal Server Error");
 	}
 };
 
-if (process.env.NODE_ENV !== "production") {
+if (!isProduction) {
 	console.log("Running in development mode");
+
 	const PORT = process.env.PORT || 3000;
+	
 	sequelize.sync().then(() => {
-		fastify.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
+		server.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
 			if (err) {
 				console.error(err);
 				process.exit(1);

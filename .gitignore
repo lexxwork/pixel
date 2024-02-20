@@ -7,3 +7,4 @@ etc
 .vercel
 env*
 .env*
+.certs
