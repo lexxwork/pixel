@@ -8,3 +8,4 @@ etc
 env*
 .env*
 .certs
+*.sh
