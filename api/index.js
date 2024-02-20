@@ -19,7 +19,8 @@ const PIXEL_IMG = Buffer.from(
 );
 
 const isProduction = process.env.NODE_ENV === "production";
-const isHTTPS = process.env.HTTPS === "true";
+const isVercel = process.env.VERCEL === "1";
+const isHTTPS = process.env.HTTPS === "1";
 const certsPath = path.join(__dirname, "../.certs");
 
 const server = fastify({
@@ -86,23 +87,21 @@ server.get("/logs/:pixelId", async (request, reply) => {
 	reply.send({ success, data: logs, error });
 });
 
-module.exports = async (req, res) => {
-	try {
-		console.log("Running in production mode");
-		await sequelize.sync();
-		await server.ready();
-		server.server.emit("request", req, res);
-	} catch (error) {
-		console.error("Error syncing Sequelize models:", error);
-		res.status(500).send("Internal Server Error");
-	}
-};
-
-if (!isProduction) {
-	console.log("Running in development mode");
-
+if (isVercel) {
+	module.exports = async (req, res) => {
+		try {
+			console.log("Running on Vercel");
+			await sequelize.sync();
+			await server.ready();
+			server.server.emit("request", req, res);
+		} catch (error) {
+			console.error("Error syncing Sequelize models:", error);
+			res.status(500).send("Internal Server Error");
+		}
+	};
+} else {
 	const PORT = process.env.PORT || 3000;
-	
+
 	sequelize.sync().then(() => {
 		server.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
 			if (err) {
