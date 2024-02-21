@@ -36,8 +36,14 @@ const server = fastify({
 		: undefined,
 });
 
+const isPublicUrl = (url) => {
+	if(url === "/") return true;
+	if (/^\/pixel\/|$/.test(url)) return true;
+	return false;
+};
+
 server.addHook("onRequest", (request, reply, done) => {
-	if (request.url !== "/") {
+	if (!isPublicUrl(request.url)) {
 		const apiKey = request.query?.api_key;
 		if (API_KEY && apiKey !== API_KEY) {
 			reply.code(401).send({ success: false, error: "Unauthorized!" });
