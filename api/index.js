@@ -8,9 +8,10 @@ const {
 	newPixelLog,
 	getLogs,
 	getLogsByPixelId,
-	clearLogs,
+	clearPixels,
 	removePixel,
 	getPixels,
+	clearLogsByPixelId,
 } = require("../service");
 
 const PIXEL_IMG = Buffer.from(
@@ -18,18 +19,31 @@ const PIXEL_IMG = Buffer.from(
 	"base64",
 );
 
-const isProduction = process.env.NODE_ENV === "production";
-const isVercel = process.env.VERCEL === "1";
-const isHTTPS = process.env.HTTPS === "1";
-const certsPath = path.join(__dirname, "../.certs");
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+const HOST = process.env.HOST || "localhost";
+const PORT = process.env.PORT || 3000;
+const API_KEY = process.env.API_KEY || "";
+const IS_VERCEL = process.env.VERCEL === "1";
+const IS_HTTPS = process.env.HTTPS === "1";
+const CERT_PATH = path.join(__dirname, "../.certs");
 
 const server = fastify({
-	https: !isHTTPS
+	https: IS_HTTPS
 		? {
-				key: fs.readFileSync(path.join(certsPath, "key.pem")),
-				cert: fs.readFileSync(path.join(certsPath, "cert.pem")),
+				key: fs.readFileSync(path.join(CERT_PATH, "key.pem")),
+				cert: fs.readFileSync(path.join(CERT_PATH, "cert.pem")),
 		  }
 		: undefined,
+});
+
+server.addHook("onRequest", (request, reply, done) => {
+	if (request.url !== "/") {
+		const apiKey = request.query?.api_key;
+		if (API_KEY && apiKey !== API_KEY) {
+			reply.code(401).send({ success: false, error: "Unauthorized!" });
+		}
+	}
+	done();
 });
 
 server.get("/", async (request, reply) => {
@@ -65,8 +79,8 @@ server.get("/pixel/:pixelId", async (request, reply) => {
 	await newPixelLog(pixelId, { headers: headersJson, ip_address: ip });
 });
 
-server.get("/pixel/clear-xo3dq9h4v25t34sfk", async (request, reply) => {
-	const { success, error, message } = await clearLogs();
+server.get("/pixel/clear", async (request, reply) => {
+	const { success, error, message } = await clearPixels();
 	reply.send({ success, error, message });
 });
 
@@ -87,7 +101,13 @@ server.get("/logs/:pixelId", async (request, reply) => {
 	reply.send({ success, data: logs, error });
 });
 
-if (isVercel) {
+server.get("/logs/:pixelId/clear", async (request, reply) => {
+	const pixelId = request.params.pixelId;
+	const { success, message, error } = await clearLogsByPixelId(pixelId);
+	reply.send({ success, message, error });
+});
+
+if (IS_VERCEL) {
 	module.exports = async (req, res) => {
 		try {
 			console.log("Running on Vercel");
@@ -100,15 +120,13 @@ if (isVercel) {
 		}
 	};
 } else {
-	const PORT = process.env.PORT || 3000;
-
 	sequelize.sync().then(() => {
-		server.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
+		server.listen({ host: HOST, port: PORT }, (err) => {
 			if (err) {
 				console.error(err);
 				process.exit(1);
 			}
-			console.log(`Server running on port ${PORT}`);
+			console.log(`Server running on  http://${HOST}:${PORT}`);
 		});
 	});
 }

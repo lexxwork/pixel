@@ -1,5 +1,4 @@
 const { Sequelize } = require("sequelize");
-const pg = require("pg");
 
 let sequelize;
 const isVercel = process.env.VERCEL === "1";
@@ -12,7 +11,7 @@ if (isVercel) {
 		{
 			host: process.env.DB_HOST,
 			dialect: "postgres",
-			dialectModule: pg,
+			dialectModule: require("pg"),
 			dialectOptions: {
 				ssl: true,
 			},

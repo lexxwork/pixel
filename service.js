@@ -82,12 +82,32 @@ const getLogsByPixelId = async (pixelId) => {
 	}
 };
 
+const clearLogsByPixelId = async (pixelId) => {
+	const pixel = await getPixelId(pixelId);
+	if (!pixel) {
+		return { success: false, error: "Pixel not found" };
+	}
+	try {
+		const removed = await PixelLogs.destroy({ where: { pixel_id: pixel.id } });
+		return {
+			success: true,
+			message: removed ? "Logs cleared successfully" : "No logs to remove",
+		};
+	} catch (error) {
+		console.error(`Error clearing logs by pixel id ${pixelId}:`, error);
+		return {
+			success: false,
+			error: `Error clearing logs by pixel id ${pixelId}`,
+		};
+	}
+};
+
 const clearPixels = async () => {
 	try {
 		await Pixel.destroy({ where: {} });
 		return { success: true, message: "Logs cleared successfully" };
 	} catch (error) {
-		console.error("Error clearing logs from the database:", error);
+		console.error("Error removing pixels from the database:", error);
 		return { success: false, error: "Internal Server Error" };
 	}
 };
@@ -112,6 +132,7 @@ module.exports = {
 	getLogs,
 	getPixelId,
 	getLogsByPixelId,
-	clearLogs: clearPixels,
+	clearPixels,
 	removePixel,
+	clearLogsByPixelId,
 };
