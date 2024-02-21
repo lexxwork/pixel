@@ -38,7 +38,7 @@ const server = fastify({
 
 const isPublicUrl = (url) => {
 	if(url === "/") return true;
-	if (/^\/pixel\/|$/.test(url)) return true;
+	if (/^\/pixel(\/|$)/.test(url)) return true;
 	return false;
 };
 
